@@ -1,0 +1,20 @@
+
+#with using api
+import numpy as np
+from sklearn.linear_model import Perceptron
+X=np.array([[0,0],[0,1],[1,0],[1,1]])
+y_and=np.array([0,0,0,1])
+y_or=np.array([0,1,1,1])
+p_and=Perceptron(max_iter=1000)
+p_and.fit(X,y_and)
+p_or=Perceptron(max_iter=1000)
+p_or.fit(X,y_or)
+
+hidden_layer_output=np.array([p_and.predict(X),p_or.predict(X)]).T
+y_xor=np.array([0,1,1,0])
+output_p=Perceptron(max_iter=1000)
+output_p.fit(hidden_layer_output,y_xor)
+for i,input_data in enumerate(X):
+    hidden_output=[p_and.predict([input_data])[0],p_or.predict([input_data])[0]]
+    final_output=output_p.predict([hidden_output])[0]
+    print(f"input:{input_data},Predicted output:{final_output}")
