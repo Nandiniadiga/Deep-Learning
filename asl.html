@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Sign Language Recognition Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.0.0"></script>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f0f0f0;
+      margin: 0;
+      color: #333;
+    }
+    nav {
+      background-color: #007BFF;
+      color: #fff;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    nav h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+    nav a {
+      color: #fff;
+      text-decoration: none;
+      margin: 0 15px;
+      font-size: 18px;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    #main {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 20px;
+    }
+    .grid {
+      background: linear-gradient(135deg, #e0f7fa, #b9d2fb);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      border: 1px solid #ddd;
+
+      
+    }
+    .grid h2 {
+      color: #007BFF;
+      margin-bottom: 15px;
+      font-size: 32px;
+      font-weight: 700;
+      text-transform: uppercase;
+      display:flex;
+    }
+    .grid p {
+      font-size: 20px;
+      line-height: 1.8;
+      color: #555;
+      margin: 0;
+      
+    }
+    #content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    #imageInput {
+      display: none;
+    }
+    #imageInputLabel {
+      display: block;
+      margin: 20px 0;
+      padding: 10px 20px;
+      background-color: #007BFF;
+      color: #fff;
+      font-size: 18px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: background-color 0.3s ease;
+    }
+    #imageInputLabel:hover {
+      background-color: #0056b3;
+    }
+    #imagePredictionContainer {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      justify-content: center;
+    }
+    #selectedImage {
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    #output {
+      font-size: 20px;
+      color: #007BFF;
+      padding: 20px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      background-color: #fff;
+      min-width: 200px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      text-align: center;
+      display: none;
+    }
+    #predictedSign {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    #confidence {
+      font-size: 22px;
+      color: #555;
+    }
+    .graphs-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .graphs-container .accuracy {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #007BFF;
+    }
+    .graphs-container .images {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+    }
+    .graphs-container img {
+      max-width: 45%;
+      height: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <h1>Hand Gesture Recognition</h1>
+    <div>
+      <a href="#about">About</a>
+      <a href="#prediction">Prediction</a>
+      <a href="#graphs">Graphs & Metrics</a>
+    </div>
+  </nav>
+
+  <div id="main">
+    <div class="grid" id="about">
+      <h2>Detection for English Alphabets</h2>
+      <p>
+        <strong>Sign Language Recognition Model</strong> is a machine learning system designed to accurately identify and interpret hand gestures representing letters of the American Sign Language (ASL). Utilizing advanced deep learning techniques, this model translates visual sign language data into readable text, enhancing communication accessibility.
+      </p>
+      <p>This model is designed to recognize American Sign Language (ASL) gestures from images and translate them into uppercase letters. It processes images through a deep learning architecture (like MobileNetV2), extracts features, and classifies gestures into one of 26 letters, providing both the predicted letter and a confidence score.</p>
+      
+    </div>
+
+    <div class="grid" id="prediction">
+      <h2>Static Image Sign Language Recognition</h2>
+      <input type="file" id="imageInput" accept="image/*">
+      <label for="imageInput" id="imageInputLabel">UPLOAD IMAGE</label>
+      <div id="imagePredictionContainer">
+        <img id="selectedImage" width="320" height="240" style="display:none;">
+        <div id="output">
+          <div id="predictedSign">Predicted Sign:</div>
+          <div id="confidence">Confidence:</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid" id="graphs">
+      <h2>Graphs & Metrics</h2>
+      <div class="graphs-container">
+        <div class="accuracy">Accuracy Score: 83%</div>
+        <div class="images">
+          <img src="Screenshot 2024-07-30 013616.png" alt="ROC Curve">
+          <img src="Screenshot 2024-07-30 013545.png" alt="Confusion Matrix">
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Define label mappings
+    const labels = [
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',  // Letters
+  'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',  // Letters
+  'U', 'V', 'W', 'X', 'Y', 'Z'                       // Letters
+];
+
+
+    async function loadModel() {
+      try {
+        console.log('Attempting to load model...');
+        const model = await tf.loadLayersModel('https://aisign.vercel.app/model.json');
+        console.log('Model loaded successfully:', model);
+        return model;
+      } catch (error) {
+        console.error('Error loading model:', error);
+      }
+    }
+
+    async function predictImage(imageElement) {
+      const model = await loadModel();
+      if (!model) {
+        console.error('Model could not be loaded.');
+        return;
+      }
+
+      try {
+        // Capture image as tensor
+        const img = tf.browser.fromPixels(imageElement)
+                            .resizeBilinear([224, 224])
+                            .expandDims(0)
+                            .toFloat()
+                            .div(tf.scalar(255));
+
+        console.log('Captured frame tensor:', img.shape);
+
+        // Perform prediction
+        const prediction = model.predict(img);
+
+        // Get probabilities and find the highest confidence
+        const probabilities = prediction.dataSync();
+        const predictedIndex = probabilities.indexOf(Math.max(...probabilities));
+        const predictedLabel = labels[predictedIndex];
+        const confidence = Math.max(...probabilities);
+
+        // Display the predicted class and confidence
+        document.getElementById('predictedSign').innerText = `Predicted Sign: ${predictedLabel}`;
+        document.getElementById('confidence').innerText = `Confidence: ${confidence.toFixed(2)}`;
+        document.getElementById('output').style.display = 'block'; // Show the output
+
+        // Log the predicted class and confidence
+        console.log('Predicted Sign:', predictedLabel, 'Confidence:', confidence);
+
+        // Dispose of tensors to free up memory
+        img.dispose();
+        prediction.dispose();
+      } catch (error) {
+        console.error('Error during prediction:', error);
+      }
+    }
+
+    document.getElementById('imageInput').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const imageElement = document.getElementById('selectedImage');
+        imageElement.src = URL.createObjectURL(file);
+        imageElement.onload = () => predictImage(imageElement);
+        imageElement.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
