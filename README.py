@@ -104,3 +104,128 @@ class gates():
                 i = 0
             else:
                 i += 1
+
+
+#Q2
+#added validation data
+import tensorflow as tf
+from tensorflow.keras import layers, models, optimizers
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Create synthetic data
+def create_data():
+    X = np.random.randn(1000, 10)
+    y = np.random.randn(1000, 1)
+    return X, y
+
+# 2. Define a simple deep neural network
+def create_model():
+    model = models.Sequential([
+        layers.Dense(50, activation='relu', input_shape=(10,)),
+        layers.Dense(20, activation='relu'),
+        layers.Dense(1)
+    ])
+    return model
+
+# 3. Train the model and capture both training and validation loss values
+def train_model_with_history(model, optimizer, X, y, batch_size, epochs, optimizer_name, validation_split=0.2):
+    model.compile(optimizer=optimizer, loss='mean_squared_error')
+    history = model.fit(X, y, batch_size=batch_size, epochs=epochs, validation_split=validation_split, verbose=0)
+    train_loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    for epoch in range(epochs):
+        print(f"Epoch {epoch+1}/{epochs} - {optimizer_name} loss: {train_loss[epoch]:.4f} - val_loss: {val_loss[epoch]:.4f}")
+    return train_loss, val_loss
+
+# 4. Compare performance of SGD and Adam
+# Load data
+X, y = create_data()
+
+# Create models for SGD and Adam
+model_sgd = create_model()
+model_adam = create_model()
+
+# Optimizers
+optimizer_sgd = optimizers.SGD(learning_rate=0.01)
+optimizer_adam = optimizers.Adam(learning_rate=0.001)
+
+# Set training parameters
+epochs = 50
+batch_size = 32
+
+# Train models and capture both training and validation loss history
+print("\nTraining with SGD optimizer")
+sgd_loss, sgd_val_loss = train_model_with_history(model_sgd, optimizer_sgd, X, y, batch_size, epochs, 'SGD')
+
+print("\nTraining with Adam optimizer")
+adam_loss, adam_val_loss = train_model_with_history(model_adam, optimizer_adam, X, y, batch_size, epochs, 'Adam')
+
+# 5. Plot the loss curves for comparison
+plt.plot(range(1, epochs + 1), sgd_loss, label='SGD - Train Loss', color='blue')
+plt.plot(range(1, epochs + 1), sgd_val_loss, label='SGD - Validation Loss', color='lightblue')
+plt.plot(range(1, epochs + 1), adam_loss, label='Adam - Train Loss', color='orange')
+plt.plot(range(1, epochs + 1), adam_val_loss, label='Adam - Validation Loss', color='yellow')
+plt.xlabel("Epochs")
+plt.ylabel("Loss")
+plt.title("SGD vs Adam Optimizer: Training and Validation Loss Comparison")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+#Q3
+#FOR COLORED IMAGES
+import tensorflow as tf
+from tensorflow.keras import layers, models, datasets
+import matplotlib.pyplot as plt
+
+# Load and preprocess the CIFAR-10 dataset
+(train_images, train_labels), (test_images, test_labels) = datasets.cifar10.load_data()
+
+# Normalize pixel values to be between 0 and 1
+train_images = train_images.astype('float32') / 255
+test_images = test_images.astype('float32') / 255
+
+# Define the CNN model for colored images
+model = models.Sequential()
+
+# Add convolutional layers, followed by pooling layers
+model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+model.add(layers.MaxPooling2D((2, 2)))
+model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+
+# Add dense layers for classification
+model.add(layers.Flatten())
+model.add(layers.Dense(64, activation='relu'))
+model.add(layers.Dense(10, activation='softmax'))
+
+# Compile the model
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+# Train the model
+history = model.fit(train_images, train_labels, epochs=10, validation_data=(test_images, test_labels))
+
+# Evaluate the model on the test set
+test_loss, test_acc = model.evaluate(test_images, test_labels)
+print(f"Test accuracy: {test_acc:.4f}")
+
+# Plot training and validation accuracy values
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Validation'], loc='upper left')
+plt.show()
+
+# Plot training and validation loss values
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model Loss')
+plt.ylabel('Loss')
+plt.xlabel('Epoch')
+plt.legend(['Train', 'Validation'], loc='upper left')
+plt.show()
