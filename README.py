@@ -5,34 +5,34 @@ import numpy as np
 
 class gates():
     def __init__(self, not_weight=np.array([1]), and_weight=np.array([-1, 1]),
-                 or_weight=np.array([1, -4]), or_biase=1, and_biase=-7, not_biase=0.1,
+                 or_weight=np.array([1, -4]), or_bias=1, and_bias=-7, not_bias=0.1,
                  initial_learning_rate=0.1) -> None:
         self.not_weight = not_weight
         self.and_weight = and_weight
         self.or_weight = or_weight
-        self.or_biase = or_biase
-        self.and_biase = and_biase
-        self.not_biase = not_biase
+        self.or_bias = or_bias
+        self.and_bias = and_bias
+        self.not_bias= not_bias
         self.learning_rate = initial_learning_rate
 
     def activation(self, x):
         return 1 if x >= 0 else 0
     
-    def perseptron(self, x, w, b):
+    def perceptron(self, x, w, b):
         res = np.dot(x, w) + b
         return self.activation(res)
     
     def NOT_function(self, x):
         x = np.array(x)
-        return self.perseptron(x, self.not_weight, self.not_biase)
+        return self.perceptron(x, self.not_weight, self.not_bias)
     
     def AND_function(self, x):
         x = np.array(x)
-        return self.perseptron(x, self.and_weight, self.and_biase)
+        return self.perceptron(x, self.and_weight, self.and_bias)
     
     def OR_function(self, x):
         x = np.array(x)
-        return self.perseptron(x, self.or_weight, self.or_biase)
+        return self.perceptron(x, self.or_weight, self.or_bias)
     
     def XOR_function(self, x):
         x = np.array(x)
@@ -68,7 +68,7 @@ class gates():
                 weight = self.not_weight
                 self.not_weight = self.update_weight(inp[i], out, tar[i], self.not_weight)
                 self.not_biase += 0.1 * (tar[i] - out)  # Keep some bias update if needed
-                print(self.not_weight, self.not_biase)
+                print(self.not_weight, self.not_bias)
                 i = 0
             else:
                 i += 1
@@ -83,8 +83,8 @@ class gates():
             if tar[i] != out:
                 weight = self.and_weight
                 self.and_weight = self.update_weight(inp[i], out, tar[i], self.and_weight)
-                self.and_biase += 0.1 * (tar[i] - out)  # Keep some bias update if needed
-                print(self.and_weight, self.and_biase)
+                self.and_bias += 0.1 * (tar[i] - out)  # Keep some bias update if needed
+                print(self.and_weight, self.and_bias)
                 i = 0
             else:
                 i += 1
@@ -99,8 +99,8 @@ class gates():
             if tar[i] != out:
                 weight = self.or_weight
                 self.or_weight = self.update_weight(inp[i], out, tar[i], self.or_weight)
-                self.or_biase += 0.1 * (tar[i] - out)  # Keep some bias update if needed
-                print(self.or_weight, self.or_biase)
+                self.or_bias += 0.1 * (tar[i] - out)  # Keep some bias update if needed
+                print(self.or_weight, self.or_bias)
                 i = 0
             else:
                 i += 1
