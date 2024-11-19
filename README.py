@@ -229,3 +229,74 @@ plt.ylabel('Loss')
 plt.xlabel('Epoch')
 plt.legend(['Train', 'Validation'], loc='upper left')
 plt.show()
+
+
+
+#Q4
+!pip install ultralytics
+from google.colab.patches import cv2_imshow
+import cv2
+from ultralytics import YOLO
+
+# Load the YOLOv5 model
+model = YOLO('yolov5s.pt')  # 'yolov5s.pt' is a small, fast pre-trained YOLO model
+
+def detect_objects_video(video_path, output_path=None, confidence_threshold=0.5):
+    # Open the video file
+    video = cv2.VideoCapture(video_path)
+    if not video.isOpened():
+        print(f"Error: Could not open video {video_path}")
+        return
+    
+    # Get video properties
+    frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = int(video.get(cv2.CAP_PROP_FPS))
+
+    # Define the codec and create VideoWriter if saving output
+    out = None
+    if output_path:
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4
+        out = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
+
+    frame_count = 0  # To limit frames shown in Colab
+    while True:
+        ret, frame = video.read()
+        if not ret:
+            break
+
+        # Perform object detection on the frame
+        results = model(frame)
+
+        # Parse YOLO results and draw boxes on the frame
+        for result in results:
+            for box in result.boxes:
+                if box.conf >= confidence_threshold:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())  # Box coordinates
+                    conf = box.conf.item()  # Confidence score
+                    cls = int(box.cls.item())  # Class ID
+                    label = model.names[cls]  # Class label
+
+                    # Draw bounding box and label on the frame
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                    cv2.putText(frame, f"{label} {conf:.2f}", (x1, y1 - 10), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+        # Display the frame in Colab
+        if frame_count < 10:  # Display the first 10 frames
+            cv2_imshow(frame)
+            frame_count += 1
+
+        # Write frame to output video
+        if out:
+            out.write(frame)
+
+    # Release video objects
+    video.release()
+    if out:
+        out.release()
+
+if __name__ == "__main__":
+    VIDEO_PATH = "/content/21115-315137069_small.mp4"  # Replace with your input video file
+    OUTPUT_PATH = "/content/output_video.mp4"  # Set to None if you don't want to save
+    detect_objects_video(VIDEO_PATH, OUTPUT_PATH)
