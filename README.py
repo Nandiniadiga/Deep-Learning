@@ -233,21 +233,24 @@ plt.show()
 
 
 #Q4
-!pip install ultralytics
 from google.colab.patches import cv2_imshow
 import cv2
 from ultralytics import YOLO
+from deep_sort_realtime.deepsort_tracker import DeepSort
 
-# Load the YOLOv5 model
-model = YOLO('yolov5s.pt')  # 'yolov5s.pt' is a small, fast pre-trained YOLO model
+# Load the YOLO model
+model = YOLO('yolov8s.pt')  # Replace 'yolov8s.pt' with your desired YOLO model
 
-def detect_objects_video(video_path, output_path=None, confidence_threshold=0.5):
+# Initialize DeepSORT tracker
+tracker = DeepSort(max_age=30, n_init=3, nn_budget=70)
+
+def detect_and_track_objects(video_path, output_path=None, confidence_threshold=0.5):
     # Open the video file
     video = cv2.VideoCapture(video_path)
     if not video.isOpened():
         print(f"Error: Could not open video {video_path}")
         return
-    
+
     # Get video properties
     frame_width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -268,19 +271,39 @@ def detect_objects_video(video_path, output_path=None, confidence_threshold=0.5)
         # Perform object detection on the frame
         results = model(frame)
 
-        # Parse YOLO results and draw boxes on the frame
+        detections = []
         for result in results:
             for box in result.boxes:
                 if box.conf >= confidence_threshold:
                     x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())  # Box coordinates
                     conf = box.conf.item()  # Confidence score
                     cls = int(box.cls.item())  # Class ID
-                    label = model.names[cls]  # Class label
 
-                    # Draw bounding box and label on the frame
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                    cv2.putText(frame, f"{label} {conf:.2f}", (x1, y1 - 10), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+                    # Append detection for tracking
+                    detections.append(([x1, y1, x2, y2], conf, cls))
+
+        # Update the DeepSORT tracker
+        tracks = tracker.update_tracks(detections, frame=frame)
+
+        # Draw detections and track IDs on the frame
+        for track in tracks:
+            if not track.is_confirmed() or track.time_since_update > 1:
+                continue
+
+            track_id = track.track_id
+            bbox = track.to_tlbr()  # Get bounding box in (top-left, bottom-right) format
+
+            x1, y1, x2, y2 = map(int, bbox)
+
+            # Retrieve label safely
+            if track.det_class is not None and track.det_class < len(model.names):
+                label = model.names[track.det_class]
+            else:
+                label = "Unknown"
+
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(frame, f"ID {track_id} {label}", (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         # Display the frame in Colab
         if frame_count < 10:  # Display the first 10 frames
@@ -297,6 +320,8 @@ def detect_objects_video(video_path, output_path=None, confidence_threshold=0.5)
         out.release()
 
 if __name__ == "__main__":
-    VIDEO_PATH = "/content/21115-315137069_small.mp4"  # Replace with your input video file
+    VIDEO_PATH = "/content/1625973-hd_1920_1080_25fps.mp4"  # Replace with your input video file
     OUTPUT_PATH = "/content/output_video.mp4"  # Set to None if you don't want to save
-    detect_objects_video(VIDEO_PATH, OUTPUT_PATH)
+    detect_and_track_objects(VIDEO_PATH, OUTPUT_PATH)
+
+
